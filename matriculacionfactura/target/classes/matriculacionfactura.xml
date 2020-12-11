@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_List_Factura" doc:name="HTTP Listener config" doc:id="b0befdec-d0bc-40ea-a340-47515de4e41a" basePath="/list">
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="d77985ba-3bdd-4fad-a024-436e168f313c" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" database="ventavehiculo" />
+	</db:config>
+	<db:config name="Database_Matriculacion" doc:name="Database Config" doc:id="274b1c0d-5e50-4e73-b816-0292a0ab3ec6" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" database="matriculacion" />
+	</db:config>
+	<http:listener-config name="HTTP_Insert_Matriculacion" doc:name="HTTP Listener config" doc:id="d90ac3fe-1242-4377-afd4-83017f7b34df">
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<db:config name="Database_Config1" doc:name="Database Config" doc:id="06b27a3c-3435-42d0-9c4c-8e416fb9651d" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" database="matriculacion" />
+	</db:config>
+	<http:listener-config name="HTTP_List_Matriculacion" doc:name="HTTP Listener config" doc:id="ccb7e8ae-ff3d-4fbe-a3a0-2d469019b6f3" basePath="/list" >
+		<http:listener-connection host="0.0.0.0" port="8083" />
+	</http:listener-config>
+	<flow name="matriculacionfacturaFlow" doc:id="eea6c47d-cc85-4886-84e7-d4821ded494a" >
+		<http:listener doc:name="Listener" doc:id="c6acda47-b638-486b-9c4d-b2e69446eb80" config-ref="HTTP_List_Factura" path="/factura"/>
+		<db:select doc:name="Select" doc:id="458a66a9-e80f-4388-aec3-5d9c0f36c59c" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from cliente,factura where cliente.cedula = factura.idCliente and factura.estado = 0]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="e4d6d5b6-dfdd-4cd5-b00f-eca1c9c6656f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	cedula: payload01.cedula,
+	nombre: payload01.nombre,
+	direccion: payload01.direccion,
+	telefono: payload01.telefono,
+	id: payload01.id,
+	idCliente: payload01.idCliente,
+	idVehiculo: payload01.idVehiculo,
+	total: payload01.total default 0
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<parse-template doc:name="Parse Template" doc:id="1f6582a9-39b3-45a6-8f2d-161622f3e137" location="C:\Users\johne\AnypointStudio\studio-workspace\matriculacion\src\main\mule\ListFactura.html"/>
+	</flow>
+	<flow name="matriculacionfacturaFlow1" doc:id="8769c955-31e8-4d05-8e04-2a913ceeadb4" >
+		<http:listener doc:name="Listener" doc:id="9b6d7447-616f-4605-bf50-48c7c014bcdb" config-ref="HTTP_Insert_Matriculacion" path="/insert"/>
+		<parse-template doc:name="Parse Template" doc:id="de445be6-2455-4ec6-aac0-3f25fe2bef21" location="C:\Users\johne\AnypointStudio\studio-workspace\matriculacion\src\main\mule\InsertMatriculacion.html"/>
+	</flow>
+	<flow name="matriculacionfacturaFlow2" doc:id="35f2e34a-3e5f-4364-b404-6a9634915b23" >
+		<http:listener doc:name="Listener" doc:id="cc5b7a05-7c41-4f08-ba52-c0c9b136266e" config-ref="HTTP_Insert_Matriculacion" path="/response"/>
+		<logger level="INFO" doc:name="Logger" doc:id="0473d7e8-0af9-4b27-87b8-7b2be8a74d50" message="#[attributes.queryParams.'id']"/>
+		<db:insert doc:name="Insert" doc:id="1d1ffca7-1def-4374-a810-a2014a16a880" config-ref="Database_Matriculacion">
+			<db:sql ><![CDATA[insert into matricula(id,idCliente,idVehiculo,valor)values(:id,:idCliente,:idVehiculo,:valor)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[output application/json
+---
+{
+	"id": attributes.queryParams.'id',
+	"idCliente": attributes.queryParams.'idCliente',
+	"idVehiculo": attributes.queryParams.'idVehiculo',
+	"valor": attributes.queryParams.'valor'
+}]]]></db:input-parameters>
+		</db:insert>
+		<parse-template doc:name="Parse Template" doc:id="add6203a-fa39-449f-97ef-7aecd0778129" location="C:\Users\johne\AnypointStudio\studio-workspace\matriculacion\src\main\mule\ListMatriculacion.html"/>
+	</flow>
+	<flow name="matriculacionfacturaFlow3" doc:id="7ba7653f-3711-4d9c-89c7-359e28c008bb" >
+		<http:listener doc:name="Listener" doc:id="6286f10b-99c3-45b5-a7aa-d268eed4bfe8" config-ref="HTTP_List_Matriculacion" path="/matriculado"/>
+		<db:select doc:name="Select" doc:id="b888cae7-fa35-4443-a60e-b2c9845e07c2" config-ref="Database_Matriculacion">
+			<db:sql ><![CDATA[select * from matricula]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="7e81f84c-419e-4fe3-a54c-2766018eda59" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	id: payload01.id,
+	idCliente: payload01.idCliente,
+	idVehiculo: payload01.idVehiculo,
+	valor: payload01.valor
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<parse-template doc:name="Parse Template" doc:id="f698dc6a-2714-4604-803d-dd089a7e7c2c" location="C:\Users\johne\AnypointStudio\studio-workspace\matriculacion\src\main\mule\ListaMatriculados.html"/>
+	</flow>
+</mule>

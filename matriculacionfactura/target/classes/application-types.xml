@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="formato" format="json">
+      <types:shape format="weave" example="examples/diseno.json"><![CDATA[%dw 2.0
+
+type formato = Array<{|  id: Number {"typeId": "int"},   idCliente: String,   idVehiculo: Number {"typeId": "int"},   total: Number {"typeId": "double"}|}> {"example": "[{\\\"id\\\":1,\\\"idCliente\\\":\\\"01\\\",\\\"idVehiculo\\\":1,\\\"total\\\":20.0}]"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="mensaje" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: string]]></types:shape>
+    </types:type>
+    <types:type name="formatogeneral" format="json">
+      <types:shape format="weave" example="examples/diseno-1.json"><![CDATA[%dw 2.0
+
+type formatogeneral = Array<{|  cedula: String,   nombre: String,   direccion: String,   telefono: Number {"typeId": "double"},   id: Number {"typeId": "int"},   idCliente: String,   idVehiculo: Number {"typeId": "int"},   total: Number {"typeId": "double"}|}> {"example": "[{\\\"cedula\\\":\\\"01055982854\\\",\\\"nombre\\\":\\\"john\\\",\\\"direccion\\\":\\\"banos\\\",\\\"telefono\\\":20.0,\\\"id\\\":1,\\\"idCliente\\\":\\\"01\\\",\\\"idVehiculo\\\":1,\\\"total\\\":20.0}]"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="matricula" format="json">
+      <types:shape format="weave" example="examples/disenoMatricula.json"><![CDATA[%dw 2.0
+
+type matricula = Array<{|  id: Number {"typeId": "int"},   idCliente: String,   idVehiculo: Number {"typeId": "int"},   valor: Number {"typeId": "double"}|}> {"example": "[{\\\"id\\\":1,\\\"idCliente\\\":\\\"01\\\",\\\"idVehiculo\\\":1,\\\"valor\\\":20.0}]"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#e4d6d5b6-dfdd-4cd5-b00f-eca1c9c6656f">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="formatogeneral"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#7e81f84c-419e-4fe3-a54c-2766018eda59">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="matricula"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>
